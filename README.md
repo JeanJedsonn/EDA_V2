@@ -156,7 +156,8 @@ data/raw/ (9 of the 19 CSV, SHA-256 verified, read as text)
           add_mechanical_features (FunctionTransformer): logs, points per Wound, melee share, spreads, indicators, can fly
           ColumnTransformer: numeric → median imputation + scaling · binary → most frequent · role → one-hot
                              keywords → KeywordEncoder (vocabulary learned in fit: keywords in ≥ 2 training factions,
-                             without allegiance, unit-name or redundant keywords)
+                             without allegiance or unit-name keywords)
+          RedundancyFilter: drops binary columns that repeat an earlier one, learned in each fit
    └─ §11  structural checks: 122 numeric columns, no missing or infinite values, input unchanged, reproducible fit
 ```
 
