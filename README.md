@@ -1,6 +1,6 @@
-# Exploratory Data Analysis — Warhammer 40,000 Faction Classification
+# Warhammer 40,000 Faction Classification — Exploratory Analysis and Data Preparation
 
-Project Assignment 1 (EDA) · Machine Learning elective · Universidad de Carabobo, Faculty of Experimental Sciences and Technology (FACYT), Department of Computing.
+Project Assignments 1 (Exploratory Data Analysis) and 2 (Data Preparation and Feature Engineering) · Machine Learning elective · Universidad de Carabobo, Faculty of Experimental Sciences and Technology (FACYT), Department of Computing.
 Authors: Gustavo Herrera, Jeanmarco Alarcón.
 
 ## Problem
@@ -13,7 +13,7 @@ Authors: Gustavo Herrera, Jeanmarco Alarcón.
 | Target | `faction_id` (25 classes). `faction_name` is only its display label; neither is ever a feature |
 | Learning problem | Multiclass, single-label classification with strongly imbalanced classes (269 to 4 datasheets) |
 | Features | Numeric and mechanical values only (model and weapon statistics, cost, unit size, shared rule keywords, core abilities, role, base). Names and text are never used to predict |
-| Deliverable | [`notebooks/01_eda_warhammer.ipynb`](notebooks/01_eda_warhammer.ipynb), executed in order with all outputs visible |
+| Deliverables | [`notebooks/01_eda_warhammer.ipynb`](notebooks/01_eda_warhammer.ipynb) (Assignment 1) and [`notebooks/02_data_preparation.ipynb`](notebooks/02_data_preparation.ipynb) (Assignment 2), each executed in order with all outputs visible |
 
 ## Data source
 
@@ -69,16 +69,17 @@ From the repository root:
 ```bash
 cd notebooks
 python -m nbconvert --to notebook --execute --inplace 01_eda_warhammer.ipynb
+python -m nbconvert --to notebook --execute --inplace 02_data_preparation.ipynb
 ```
 
-Alternatively, open the notebook in Jupyter or VS Code and use **Restart Kernel → Run All**. A full run takes about a minute (45 s on the test machine). Paths are resolved relative to the notebook folder, so the data are found without any configuration.
+Alternatively, open a notebook in Jupyter or VS Code and use **Restart Kernel → Run All**. Paths are resolved relative to the notebook folder, so the data are found without any configuration. **The two notebooks are independent:** each one reads `data/raw/` itself, neither uses variables or files produced by the other, and they can be run in any order.
 
-Each run:
-1. verifies the 19 CSV files in `data/raw/`;
-2. rebuilds `artifacts/warhammer_raw.db` and `artifacts/warhammer_clean.db` from scratch (the folder is created if it does not exist);
-3. executes the whole analysis.
+| Notebook | Each run | Time on the test machine |
+|---|---|---|
+| `01_eda_warhammer.ipynb` | verifies the 19 CSV files; rebuilds `artifacts/warhammer_raw.db` and `artifacts/warhammer_clean.db` from scratch (the folder is created if it does not exist); executes the whole analysis | about 45 s |
+| `02_data_preparation.ipynb` | verifies the 9 CSV files it reads; rebuilds the table of 1,350 datasheets and checks it against the exploratory analysis; splits train and test; fits the preparation pipeline on the training rows only. **It writes nothing to disk** | about 10 s |
 
-The executed notebook in the repository already contains every output, so it can be read without running it.
+The executed notebooks in the repository already contain every output, so they can be read without running them.
 
 ## Repository structure
 
@@ -87,7 +88,8 @@ EDA_V2/
 ├── data/
 │   └── raw/                      # input: the 19 CSV files of the Kaggle export (canonical, immutable, versioned)
 ├── notebooks/
-│   └── 01_eda_warhammer.ipynb    # the deliverable: builds the databases and runs the whole EDA
+│   ├── 01_eda_warhammer.ipynb    # Assignment 1: builds the databases and runs the whole EDA
+│   └── 02_data_preparation.ipynb # Assignment 2: validation, train/test split, features and preprocessing pipeline
 ├── artifacts/                    # generated on every run (not versioned)
 │   ├── warhammer_raw.db
 │   └── warhammer_clean.db
@@ -102,6 +104,7 @@ EDA_V2/
 | `artifacts/warhammer_raw.db` | generated | notebook, §4.1 | no (rebuilt on every run) |
 | `artifacts/warhammer_clean.db` | generated | notebook, §4.6, built only from the raw database | no (rebuilt on every run) |
 | `notebooks/01_eda_warhammer.ipynb` | code and results | — | yes (with outputs) |
+| `notebooks/02_data_preparation.ipynb` | code and results | — | yes (with outputs) |
 
 ## Pipeline and lineage
 
@@ -141,8 +144,26 @@ data/raw/  (19 CSV, SHA-256 verified)
 - a duplicated `datasheet_id`;
 - an identifier or target alias in `X`.
 
+## Data preparation (notebook 02)
+
+```text
+data/raw/ (9 of the 19 CSV, SHA-256 verified, read as text)
+   └─ §5  row filters without the target (134 orphan weapons, 285 empty duplicates, 1 internal page)
+          parsers with a status; one row per datasheet (1,350), checked against the exploratory analysis
+          GroupId: related datasheets (same name or identical profiles), 1,207 groups
+   └─ §6  grouped and stratified hold-out on GroupId (StratifiedGroupKFold, seed 42): 1,079 train / 271 test
+   └─ §7–10  Pipeline, fitted on the training rows only:
+          add_mechanical_features (FunctionTransformer): logs, points per Wound, melee share, spreads, indicators, can fly
+          ColumnTransformer: numeric → median imputation + scaling · binary → most frequent · role → one-hot
+                             keywords → KeywordEncoder (vocabulary learned in fit: keywords in ≥ 2 training factions,
+                             without allegiance, unit-name or redundant keywords)
+   └─ §11  structural checks: 123 numeric columns, no missing or infinite values, input unchanged, reproducible fit
+```
+
+No model is trained and no hyperparameter is tuned; the test set is not transformed. Section 12 of the notebook lists the hypotheses and the objects for the modelling notebook.
+
 ## Reproducibility
 
-- **Random seed:** `RANDOM_STATE = 42` for every stochastic step (bootstrap intervals, validation folds).
-- **Clean runs:** the notebook is executed top to bottom; its execution counts are sequential and there are no errors or warnings in the outputs.
-- **Automated checks:** there is no separate test suite. The checks listed above run inside the notebook on every execution, so the `nbconvert --execute` command doubles as the automated build-and-validate test: it exits with an error if any check fails.
+- **Random seed:** `RANDOM_STATE = 42` for every stochastic step (bootstrap intervals, train/test split, validation folds).
+- **Clean runs:** each notebook is executed top to bottom; its execution counts are sequential and there are no errors. Notebook 02 shows two scikit-learn warnings: the smallest faction (4 datasheets) has fewer members than the number of folds. They are left visible on purpose and explained in the notebook; no warning filter is used.
+- **Automated checks:** there is no separate test suite. The checks listed above run inside the notebooks on every execution, so the `nbconvert --execute` command doubles as the automated build-and-validate test: it exits with an error if any check fails.
