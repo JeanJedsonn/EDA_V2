@@ -151,14 +151,14 @@ data/raw/ (9 of the 19 CSV, SHA-256 verified, read as text)
    └─ §5  row filters without the target (134 orphan weapons, 285 empty duplicates, 1 internal page)
           parsers with a status; one row per datasheet (1,350), checked against the exploratory analysis
           GroupId: related datasheets (same name or identical profiles), 1,207 groups
-   └─ §6  grouped and stratified hold-out on GroupId (StratifiedGroupKFold, seed 42): 1,079 train / 271 test
+   └─ §6  grouped and stratified hold-out on GroupId (StratifiedGroupKFold, 4 folds, seed 42): 1,012 train / 338 test
    └─ §7–10  Pipeline, fitted on the training rows only:
           add_mechanical_features (FunctionTransformer): logs, points per Wound, melee share, spreads, indicators, can fly
           ColumnTransformer: numeric → median imputation + scaling · binary → most frequent · role → one-hot
                              keywords → KeywordEncoder (vocabulary learned in fit: keywords in ≥ 2 training factions,
                              without allegiance or unit-name keywords)
           RedundancyFilter: drops binary columns that repeat an earlier one, learned in each fit
-   └─ §11  structural checks: 122 numeric columns, no missing or infinite values, input unchanged, reproducible fit
+   └─ §11  structural checks: 118 numeric columns, no missing or infinite values, input unchanged, reproducible fit
 ```
 
 Columns that would reveal the faction are excluded before the pipeline: identifiers, names, faction and allegiance keywords, faction abilities and the price context of a cost row (its text names the Imperial Agents). No model is trained and no hyperparameter is tuned; the test set is not transformed. Section 12 of the notebook lists the hypotheses and the objects for the modelling notebook.
@@ -166,5 +166,5 @@ Columns that would reveal the faction are excluded before the pipeline: identifi
 ## Reproducibility
 
 - **Random seed:** `RANDOM_STATE = 42` for every stochastic step (bootstrap intervals, train/test split, validation folds).
-- **Clean runs:** each notebook is executed top to bottom; its execution counts are sequential and there are no errors. Notebook 02 shows two scikit-learn warnings: the smallest faction (4 datasheets) has fewer members than the number of folds. They are left visible on purpose and explained in the notebook; no warning filter is used.
+- **Clean runs:** each notebook is executed top to bottom; its execution counts are sequential and there are no errors or warnings. No warning filter is used: in notebook 02 the number of folds is set by the smallest faction (4 datasheets: 4 hold-out folds, 3 inner folds), so every class fits in every fold.
 - **Automated checks:** there is no separate test suite. The checks listed above run inside the notebooks on every execution, so the `nbconvert --execute` command doubles as the automated build-and-validate test: it exits with an error if any check fails.
