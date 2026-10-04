@@ -157,10 +157,10 @@ data/raw/ (9 of the 19 CSV, SHA-256 verified, read as text)
           ColumnTransformer: numeric → median imputation + scaling · binary → most frequent · role → one-hot
                              keywords → KeywordEncoder (vocabulary learned in fit: keywords in ≥ 2 training factions,
                              without allegiance, unit-name or redundant keywords)
-   └─ §11  structural checks: 123 numeric columns, no missing or infinite values, input unchanged, reproducible fit
+   └─ §11  structural checks: 122 numeric columns, no missing or infinite values, input unchanged, reproducible fit
 ```
 
-No model is trained and no hyperparameter is tuned; the test set is not transformed. Section 12 of the notebook lists the hypotheses and the objects for the modelling notebook.
+Columns that would reveal the faction are excluded before the pipeline: identifiers, names, faction and allegiance keywords, faction abilities and the price context of a cost row (its text names the Imperial Agents). No model is trained and no hyperparameter is tuned; the test set is not transformed. Section 12 of the notebook lists the hypotheses and the objects for the modelling notebook.
 
 ## Reproducibility
 
